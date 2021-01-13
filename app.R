@@ -293,6 +293,8 @@ server <- shinyServer(function(input, output) {
                     sf::st_transform(crs = sf::st_crs(4839)) %>%
                     sf::st_buffer(15000) %>% 
                     sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
+                    sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
+                    sf::st_union() %>% 
                     sf::st_as_sf() %>% 
                     sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
                     rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
@@ -320,7 +322,7 @@ server <- shinyServer(function(input, output) {
                                          color = ~leafPal1(LastWeek_100k)) %>% 
                     # 15km radius
                     leaflet::addPolygons(data = leaf_data[1, ],
-                                         stroke = FALSE, fill = TRUE, fillOpacity = 0.1, weight = 2,
+                                         stroke = FALSE, fill = TRUE, fillOpacity = 0.2, weight = 2,
                                          fillColor = leafPal(leaf_data$name[1]), label = leaf_data$name[1]) %>%
                     # Gemeinde
                     leaflet::addPolygons(data = leaf_data[2, ],
@@ -330,7 +332,7 @@ server <- shinyServer(function(input, output) {
                     leaflet::addMarkers(data = leaf_data[3, ],
                                         label = leaf_data$name[3]) %>% 
                     # Legende
-                    leaflet::addLegend("bottomright", pal = leafPal, opacity = 0.3, values = leaf_data$name[1], title = NA) %>% 
+                    leaflet::addLegend("bottomright", pal = leafPal, opacity = 0.4, values = leaf_data$name[1], title = NA) %>% 
                     leaflet::addLegend(data = germany_nuts,
                                        "bottomright", pal = leafPal1, values = ~LastWeek_100k, title = "7-Tage-Inzidenz") %>% 
                     # NUTS3 regions for popup
