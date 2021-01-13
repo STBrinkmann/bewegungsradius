@@ -1,6 +1,6 @@
 # COVID-19 Bewegungsradius
 
-Besuche die App auf [amazonaws.com/covid_ger_buffer/](http://ec2-52-57-58-181.eu-central-1.compute.amazonaws.com/covid_ger_buffer/)
+Besuche die App auf [geobrinkmann.com/bewegungsradius](https://geobrinkmann.com/bewegungsradius/)
 
 [<img src="https://img.br.de/70a46076-f9d8-44bd-9f5a-ede01f747bed.png?q=80&rect=0%2C0%2C7984%2C4495&w=2000" rel="BR_incidence" />](https://www.br.de/nachrichten/bayern/verwirrung-um-15-kilometer-regel-in-niederbayern,SLPUKZ4)
 
@@ -18,3 +18,4 @@ Aktuell ist das Geolocating - also nutzen des eigenen Standortes - noch nicht ve
 
 ## Disclaimer
 Dieses Tool dient nur zu Unterhaltungszwecken und stellt keine medizinische, rechtliche oder sonstige Form der Beratung dar. Benutzer sollten sich auf die offiziellen Richtlinien und Empfehlungen ihrer nationalen, staatlichen und lokalen Behörden beziehen.
+Es werden keinerlei personenbezogener Daten gespeichert.

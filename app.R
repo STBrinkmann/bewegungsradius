@@ -113,8 +113,8 @@ ui <- shinyUI(
         ),
         
         absolutePanel(
-            top = "96.5%", left = 10, draggable = FALSE, width = "10%", height = "3%", style = "z-index:500; min-width: 20px;",
-            a(href="https://github.com/STBrinkmann/covid_ger_buffer", "Mehr Infos...", target="_blank")
+            top = "96.5%", left = 5, draggable = FALSE, width = "20%", height = "3%", style = "z-index:500; min-width: 20px;",
+            a(href="https://github.com/STBrinkmann/covid_ger_buffer", "Mehr Infos..", target="_blank")
         )
     )
 )
@@ -214,7 +214,7 @@ server <- shinyServer(function(input, output) {
                         if(!input$geolocation) stop()
                     }, error = function(e) {
                         shiny::showModal(shiny::modalDialog(title = "Sorry!", 
-                                                            tags$p("Diese Funktion ist in der aktuellen Version noch nicht verfügbar."), #Du must den Standortzugriff erlauben!
+                                                            tags$p("Du must den Standortzugriff erlauben!"),
                                                             footer = shiny::modalButton("Abbrechen"),
                                                             easyClose = TRUE))
                     }
