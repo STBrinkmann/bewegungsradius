@@ -114,7 +114,7 @@ ui <- shinyUI(
         
         absolutePanel(
             top = "96.5%", left = 5, draggable = FALSE, width = "20%", height = "3%", style = "z-index:500; min-width: 20px;",
-            a(href="https://github.com/STBrinkmann/covid_ger_buffer", "Mehr Infos..", target="_blank")
+            a(href="https://github.com/STBrinkmann/bewegungsradius", "Mehr Infos..", target="_blank")
         )
     )
 )
