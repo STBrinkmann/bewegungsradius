@@ -37,9 +37,10 @@ germany_nuts <- sapply(jsonlite::read_json("https://github.com/entorb/COVID-19-C
                                return(c(x$LK_ID, x$Cases_Last_Week_Per_100000, x$LK_Typ,
                                         paste0(x$DIVI_Intensivstationen_Betten_belegt_Prozent, "%"), 
                                         paste0(x$DIVI_Intensivstationen_Covid_Prozent, "%"),
-                                        x$Date_Latest))
+                                        x$Date_Latest, x$Bundesland))
                            } else {
-                               return(c(x$LK_ID, x$Cases_Last_Week_Per_100000, x$LK_Typ, "Nicht verfügbar", "Nicht verfügbar", x$Date_Latest))
+                               return(c(x$LK_ID, x$Cases_Last_Week_Per_100000, x$LK_Typ, "Nicht verfügbar", "Nicht verfügbar",
+                                        x$Date_Latest, x$Bundesland))
                            }
                        }) %>%
     t() %>% 
@@ -49,11 +50,10 @@ germany_nuts <- sapply(jsonlite::read_json("https://github.com/entorb/COVID-19-C
                   LK_Typ = V3,
                   DIVI_ges = V4,
                   DIVI_covid = V5,
-                  Date_Latest = V6) %>% 
+                  Date_Latest = V6,
+                  Bundesland = V7) %>% 
     dplyr::mutate(Kennziffer = as.numeric(Kennziffer),
                   LastWeek_100k = as.numeric(LastWeek_100k),
-                  #sieben_tage = round(LastWeek_100k),
-                  #LastWeek_100k = dplyr::if_else(LastWeek_100k >= 200, "> 200", "< 200"),
                   Date_Latest = lubridate::ymd(Date_Latest),
                   Date_Latest = paste0(lubridate::day(Date_Latest), ". ", 
                                        month.abb[lubridate::month(Date_Latest)], " ",
@@ -61,7 +61,7 @@ germany_nuts <- sapply(jsonlite::read_json("https://github.com/entorb/COVID-19-C
 
 germany_nuts[germany_nuts$Kennziffer %in% 11001:11012, ] <- germany_nuts[germany_nuts$Kennziffer %in% 11001:11012, ] %>%
     summarize(Kennziffer = 11000, LastWeek_100k = mean(LastWeek_100k), 
-              LK_Typ, DIVI_ges, DIVI_covid, Date_Latest)
+              LK_Typ, DIVI_ges, DIVI_covid, Date_Latest, Bundesland)
 
 germany_nuts <- germany_nuts %>% 
     mutate(sieben_tage = round(LastWeek_100k),
@@ -287,19 +287,50 @@ server <- shinyServer(function(input, output) {
                 # NUTS3 name
                 nuts_name <- gemeinden_intersect$GEN
                 
-                # 15km buffer and collect all spatial features
-                leaf_data <- gemeinden_intersect %>% 
-                    sf::st_geometry() %>%
-                    sf::st_transform(crs = sf::st_crs(4839)) %>%
-                    sf::st_buffer(15000) %>% 
-                    sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
-                    sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
-                    sf::st_union() %>% 
-                    sf::st_as_sf() %>% 
-                    sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
-                    rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
-                    rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
-                    dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
+                if (germany_nuts[geo_point, ]$Bundesland %in% c("Saarland", "Sachsen", "Niedersachsen")) {
+                    # 15km buffer and collect all spatial features
+                    leaf_data <- geo_point %>% 
+                        sf::st_geometry() %>%
+                        sf::st_transform(crs = sf::st_crs(4839)) %>%
+                        sf::st_buffer(15000) %>% 
+                        sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
+                        sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
+                        sf::st_union() %>% 
+                        sf::st_as_sf() %>% 
+                        #sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
+                        dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
+                } else if (germany_nuts[geo_point, ]$Bundesland == "Brandenburg") {
+                    # 15km buffer and collect all spatial features
+                    leaf_data <- germany_nuts[geo_point, ] %>% 
+                        sf::st_geometry() %>%
+                        sf::st_transform(crs = sf::st_crs(4839)) %>%
+                        sf::st_buffer(15000) %>% 
+                        sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
+                        sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
+                        sf::st_union() %>% 
+                        sf::st_as_sf() %>% 
+                        sf::st_difference(dplyr::select(germany_nuts[geo_point, ], geom)) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(germany_nuts[geo_point, ]))) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
+                        dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
+                } else {
+                    # 15km buffer and collect all spatial features
+                    leaf_data <- gemeinden_intersect %>% 
+                        sf::st_geometry() %>%
+                        sf::st_transform(crs = sf::st_crs(4839)) %>%
+                        sf::st_buffer(15000) %>% 
+                        sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
+                        sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
+                        sf::st_union() %>% 
+                        sf::st_as_sf() %>% 
+                        sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
+                        dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
+                }
+                
                 
                 incProgress(1/5)
                 
