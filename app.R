@@ -21,6 +21,38 @@ geocode <- function(address = NULL) {
     data.frame(lon = as.numeric(d$lon), lat = as.numeric(d$lat)) %>%
         return()
 }
+# Verordnungen nach https://www.bundesregierung.de/breg-de/themen/coronavirus/corona-bundeslaender-1745198
+verordnungen <- dplyr::tibble(
+    Bundesland = c(
+        "Baden-Württemberg", "Bayern", "Berlin", "Brandenburg", "Bremen", "Hamburg",
+        "Hessen", "Mecklenburg-Vorpommern", "Niedersachsen", "Nordrhein-Westfalen",
+        "Rheinland-Pfalz", "Saarland", "Sachsen", "Sachsen-Anhalt", "Schleswig-Holstein", "Thüringen"
+        ),
+    URL = c(
+        "https://www.baden-wuerttemberg.de/de/service/aktuelle-infos-zu-corona/",
+        "https://www.corona-katastrophenschutz.bayern.de/faq/index.php",
+        "https://www.rbb24.de/politik/thema/2020/coronavirus/beitraege_neu/2020/04/berlin-corona-massnahmen-lockerung-ausgang-kontakt-erlaubt.html",
+        "https://kkm.brandenburg.de/kkm/de/",
+        "https://www.bremen.de/corona",
+        "https://www.hamburg.de/coronavirus/",
+        "https://www.faz.net/aktuell/rhein-main/corona-weitere-kreise-in-hessen-fuehren-15-kilometer-regel-ein-17143539.html",
+        "https://www.regierung-mv.de/corona/Corona-Regeln-seit-10.01.2021/",
+        "https://www.niedersachsen.de/Coronavirus",
+        "https://www.land.nrw/corona",
+        "https://corona.rlp.de/index.php?id=34836",
+        "https://www.saarland.de/DE/portale/corona/home/home_node.html",
+        "https://www.coronavirus.sachsen.de/index.html",
+        "https://coronavirus.sachsen-anhalt.de/",
+        "https://www.schleswig-holstein.de/DE/Schwerpunkte/Coronavirus/FAQ/Dossier/Allgemeines_Verwaltung.html",
+        "https://corona.thueringen.de/"
+        ),
+    umsetzung = c(
+        "nicht", "gemeinde", "gemeinde", "landkreis", "nicht", "nicht", "nicht",
+        "wohnadresse", "wohnadresse", "nicht", "gemeinde", "wohnadresse",
+        "wohnadresse", "gemeinde", "gemeinde", "gemeinde"
+        )
+    )
+
 
 # Shapefile for NUTS3 regions
 germany_nuts3 <- readRDS(file.path("data", "germany_nuts3.RDS"))
@@ -68,7 +100,13 @@ germany_nuts <- germany_nuts %>%
            LastWeek_100k = dplyr::if_else(LastWeek_100k >= 200, "> 200", "< 200")) %>% 
     distinct() %>% 
     dplyr::inner_join(germany_nuts3, .) %>% 
-    dplyr::relocate(geom, .after = sieben_tage)
+    dplyr::inner_join(verordnungen) %>% 
+    dplyr::mutate(umsetzung = ifelse(
+        NUTS_NAME %in% c("Gießen, Landkreis", "Höxter", "Fulda", "Minden-Lübbecke", "Limburg-Weilburg",
+                         "Vogelsbergkreis", "Oberbergischer Kreis", "Recklinghausen"),
+        "gemeinde", umsetzung
+    )) %>% 
+    dplyr::relocate(geom, .after = umsetzung)
 
 
 # Define UI -----------------------------------------------------
@@ -108,7 +146,7 @@ ui <- shinyUI(
         absolutePanel(
             top = 100, left = 10, draggable = TRUE, width = "20%", style = "z-index:500; min-width: 300px;",
             textInput("address", "Bitte Adresse eingeben", placeholder = "in Deutschland"),
-            checkboxInput("use_location", "Oder nutze deinen aktuelle Standort!"),
+            checkboxInput("use_location", "Oder nutze deinen aktuellen Standort!"),
             actionButton("go", "Radius berechnen!", class = "btn-primary")
         ),
         
@@ -155,10 +193,9 @@ server <- shinyServer(function(input, output) {
                                  </style>
                                  </head>
                                  <body>
-                                 
-                                 
-                                 <h5><b>", germany_nuts$NUTS_NAME, "</b></h5>
-                                 <table style=\"width:100%\">
+                                 <h5><b>", germany_nuts$NUTS_NAME, "</b></h5>",
+                                 ifelse(germany_nuts$umsetzung != "nicht", "", "<strong>Aktuell keine 15km Regel!</strong>"),
+                                 "<table style=\"width:100%\">
                                  <tr>
                                      <th></th>
                                      <th></th>
@@ -189,6 +226,7 @@ server <- shinyServer(function(input, output) {
                                      <td>", germany_nuts$Date_Latest, "</td>
                                  </tr>
                                  </table>
+                                 <A HREF = ", germany_nuts$URL,">Mehr Informationen</A>
                                  </body>
                                  </html>
                                  "
@@ -196,6 +234,7 @@ server <- shinyServer(function(input, output) {
             leaflet::addLegend(data = germany_nuts, 
                                "bottomright", pal = leafPal1, values = ~LastWeek_100k, title = "7-Tage-Inzidenz")
     })
+    
     
     # actionButton
     shiny::observeEvent(input$go, {
@@ -214,7 +253,7 @@ server <- shinyServer(function(input, output) {
                         if(!input$geolocation) stop()
                     }, error = function(e) {
                         shiny::showModal(shiny::modalDialog(title = "Sorry!", 
-                                                            tags$p("Du must den Standortzugriff erlauben!"),
+                                                            tags$p("Du musst den Standortzugriff erlauben!"),
                                                             footer = shiny::modalButton("Abbrechen"),
                                                             easyClose = TRUE))
                     }
@@ -264,8 +303,12 @@ server <- shinyServer(function(input, output) {
                     sf::st_as_sf(coords = c("lon", "lat"), crs = sf::st_crs(germany_nuts)) %>% 
                     dplyr::rename(geom = geometry)
                 
-                # Intersect of NUTS3 and address
+                # Intersect of NUTS3/LAU and address
+                landkreis_intersect <- germany_nuts[geo_point, ]
+                bundesland <- landkreis_intersect$Bundesland
+                
                 gemeinden_intersect <- gemeinden[geo_point, ]
+                nuts_name <- gemeinden_intersect$GEN
                 
                 tryCatch({
                     if (nrow(gemeinden_intersect) == 0) stop("Error")
@@ -281,14 +324,26 @@ server <- shinyServer(function(input, output) {
                 shiny::validate(
                     shiny::need(nrow(gemeinden_intersect) > 0, message = FALSE)
                 )
-                
                 incProgress(1/5)
                 
-                # NUTS3 name
-                nuts_name <- gemeinden_intersect$GEN
                 
-                if (germany_nuts[geo_point, ]$Bundesland %in% c("Saarland", "Sachsen", "Niedersachsen")) {
-                    # 15km buffer and collect all spatial features
+                # 1. Ab der Gemeindegrenze
+                if (landkreis_intersect$umsetzung == "gemeinde") {
+                    leaf_data <- gemeinden_intersect %>% 
+                        sf::st_geometry() %>%
+                        sf::st_transform(crs = sf::st_crs(4839)) %>%
+                        sf::st_buffer(15000) %>% 
+                        sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
+                        sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
+                        sf::st_union() %>% 
+                        sf::st_difference(sf::st_geometry(gemeinden_intersect)) %>% 
+                        sf::st_as_sf() %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
+                        dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
+                } 
+                # 2. Ab der Wohnadresse
+                else if (landkreis_intersect$umsetzung == "wohnadresse") {
                     leaf_data <- geo_point %>% 
                         sf::st_geometry() %>%
                         sf::st_transform(crs = sf::st_crs(4839)) %>%
@@ -297,35 +352,35 @@ server <- shinyServer(function(input, output) {
                         sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
                         sf::st_union() %>% 
                         sf::st_as_sf() %>% 
-                        #sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
                         rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
                         rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
                         dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
-                } else if (germany_nuts[geo_point, ]$Bundesland == "Brandenburg") {
-                    # 15km buffer and collect all spatial features
-                    leaf_data <- germany_nuts[geo_point, ] %>% 
+                } 
+                # 3. Ab der Landkreisgrenze
+                else if(landkreis_intersect$umsetzung == "landkreis") {
+                    leaf_data <- landkreis_intersect %>% 
                         sf::st_geometry() %>%
                         sf::st_transform(crs = sf::st_crs(4839)) %>%
                         sf::st_buffer(15000) %>% 
                         sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
                         sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
                         sf::st_union() %>% 
+                        sf::st_difference(sf::st_geometry(landkreis_intersect)) %>% 
                         sf::st_as_sf() %>% 
-                        sf::st_difference(dplyr::select(germany_nuts[geo_point, ], geom)) %>% 
-                        rbind(sf::st_as_sf(sf::st_geometry(germany_nuts[geo_point, ]))) %>% 
+                        rbind(sf::st_as_sf(sf::st_geometry(landkreis_intersect))) %>% 
                         rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
                         dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
-                } else {
-                    # 15km buffer and collect all spatial features
-                    leaf_data <- gemeinden_intersect %>% 
+                }
+                # 4. Nicht Umgesetzt
+                else {
+                    leaf_data <- geo_point %>% 
                         sf::st_geometry() %>%
                         sf::st_transform(crs = sf::st_crs(4839)) %>%
-                        sf::st_buffer(15000) %>% 
+                        sf::st_buffer(0.01) %>% 
                         sf::st_transform(crs = sf::st_crs(germany_nuts)) %>%
                         sf::st_intersection(sf::st_geometry(germany_nuts)) %>% 
                         sf::st_union() %>% 
                         sf::st_as_sf() %>% 
-                        sf::st_difference(dplyr::select(gemeinden_intersect, geom)) %>% 
                         rbind(sf::st_as_sf(sf::st_geometry(gemeinden_intersect))) %>% 
                         rbind(sf::st_as_sf(sf::st_geometry(geo_point))) %>% 
                         dplyr::mutate(name = c("15km Radius", nuts_name, "Wohnort"))
@@ -391,8 +446,9 @@ server <- shinyServer(function(input, output) {
                                              <body>
                                              
                                              
-                                             <h5><b>", germany_nuts$NUTS_NAME, "</b></h5>
-                                             <table style=\"width:100%\">
+                                             <h4><b>", germany_nuts$NUTS_NAME, "</b></h4>",
+                                             ifelse(germany_nuts$umsetzung != "nicht", "", "<strong>Aktuell keine 15km Regel!</strong>"),
+                                             "<table style=\"width:100%\">
                                              <tr>
                                                  <th></th>
                                                  <th></th>
@@ -423,6 +479,7 @@ server <- shinyServer(function(input, output) {
                                                  <td>", germany_nuts$Date_Latest, "</td>
                                              </tr>
                                              </table>
+                                             <A HREF = ", germany_nuts$URL,">Mehr Informationen</A>
                                              </body>
                                              </html>
                                              "
