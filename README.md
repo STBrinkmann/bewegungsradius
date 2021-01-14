@@ -13,13 +13,13 @@ von über 200 nur noch 15 km um ihren Wohnort bewegen dürfen, sorgt für
 Verwirrung. Diese App soll dabei helfen, den individuellen
 Bewegungsradius zu ermitteln.  
 Zunächst wird die aktuelle 7-Tage-Inzidenz für jeden Landkreis
-downloaded und in zwei Kategorien eingeteilt: \< 200 und \>= 200.
+gedownloaded und in zwei Kategorien eingeteilt: \< 200 und \>= 200.
 Anschließend wird die Adresse georeferenziert und ein 15 km Buffer wird
-um die Gemeinde der Adresse gelegt. Der genaue Wert der 7-Tage-Inzidenz,
-sowie die Verfügbarkeiten von Intensivstationbetten (ITS) kann durch
-Anklicken eines Landkreisen ausgelesen werden.  
-Aktuell ist das Geolocating - also nutzen des eigenen Standortes - noch
-nicht verfügbar, da kein *https* Zertifikat zur Verfügung steht.
+um die Gemeinde, bzw. den Landkreis der Adresse, oder auch die Adresse
+selbst gelegt.  
+Der genaue Wert der 7-Tage-Inzidenz, sowie die Verfügbarkeiten von
+Intensivstationbetten (ITS) kann durch Anklicken eines Landkreisen
+ausgelesen werden.
 
 ## Die Corona-Regeln in den Bundesländern
 
