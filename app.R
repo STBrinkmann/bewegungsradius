@@ -144,7 +144,7 @@ ui <- shinyUI(
         leafletOutput("map", width="100%", height="100%"),
         
         absolutePanel(
-            top = 100, left = 10, draggable = TRUE, width = "20%", style = "z-index:500; min-width: 300px;",
+            top = 100, left = 10, draggable = TRUE, width = "20%", style = "z-index:500; min-width: 150px;",
             textInput("address", "Bitte Adresse eingeben", placeholder = "in Deutschland"),
             checkboxInput("use_location", "Oder nutze deinen aktuellen Standort!"),
             actionButton("go", "Radius berechnen!", class = "btn-primary")
