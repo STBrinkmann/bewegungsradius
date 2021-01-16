@@ -4,7 +4,7 @@ COVID-19 Bewegungsradius
 # COVID-19 Bewegungsradius
 
 Besuche die App auf
-[geobrinkmann.com/bewegungsradius](https://geobrinkmann.com/bewegungsradius/)
+[geobrinkmann.com](https://geobrinkmann.com/post/covid-19-15km-radius-webapp/)
 
 [<img src="https://img.br.de/70a46076-f9d8-44bd-9f5a-ede01f747bed.png?q=80&rect=0%2C0%2C7984%2C4495&w=2000" rel="BR_incidence" />](https://www.br.de/nachrichten/bayern/verwirrung-um-15-kilometer-regel-in-niederbayern,SLPUKZ4)
 
